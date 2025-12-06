@@ -1,7 +1,6 @@
 package ru.yandex.buggyweatherapp.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,44 +24,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import ru.yandex.buggyweatherapp.model.WeatherData
+import ru.yandex.buggyweatherapp.ui.model.WeatherScreenUiState
 import ru.yandex.buggyweatherapp.utils.WeatherIconMapper
-import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
-    
-    val context = LocalContext.current
-    
-    
-    DisposableEffect(Unit) {
-        
-        viewModel.initialize(context)
-        
-        onDispose {
-            
-        }
-    }
-    
-    
-    val weatherData by viewModel.weatherData.observeAsState()
-    val isLoading by viewModel.isLoading.observeAsState(false)
-    val error by viewModel.error.observeAsState()
-    val cityName by viewModel.cityName.observeAsState("")
-    
-    var searchText by remember { mutableStateOf("") }
+fun WeatherScreen(
+    modifier: Modifier = Modifier,
+    state: WeatherScreenUiState,
+    onSearchTextChange: (newText: String) -> Unit,
+    onSearchWeatherByCity: (searchText: String) -> Unit,
+    onToggleFavorite: () -> Unit,
+    onFetchCurrentLocationWeather: () -> Unit,
+) {
     
     Column(
         modifier = modifier
@@ -71,46 +50,44 @@ fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
+            value = state.searchText,
+            onValueChange = onSearchTextChange,
             label = { Text("Search city") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = {
-                IconButton(onClick = { 
-                    
-                    viewModel.searchWeatherByCity(searchText) 
+                IconButton(onClick = {
+                    onSearchWeatherByCity(state.searchText)
                 }) {
                     Icon(Icons.Default.Search, contentDescription = "Search")
                 }
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { 
-                viewModel.searchWeatherByCity(searchText) 
+            keyboardActions = KeyboardActions(onSearch = {
+                onSearchWeatherByCity(state.searchText)
             })
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        
-        if (isLoading && weatherData == null) {
+        if (state.isLoading) {
             Text("Loading weather data...")
         }
         
-        
-        error?.let {
+        if (!state.error.isNullOrBlank()) {
             Text(
-                text = it,
+                text = state.error,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(8.dp)
             )
+
         }
-        
-        weatherData?.let { weather ->
+
+        if (state.weatherData != null) {
             WeatherCard(
-                weather = weather,
-                cityName = cityName,
-                onFavoriteClick = { viewModel.toggleFavorite() },
-                onRefreshClick = { viewModel.fetchCurrentLocationWeather() }
+                weather = state.weatherData,
+                cityName = state.cityName,
+                onFavoriteClick = onToggleFavorite,
+                onRefreshClick = onFetchCurrentLocationWeather
             )
         }
     }

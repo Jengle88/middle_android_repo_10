@@ -7,18 +7,22 @@ data class Location(
 ) {
     
     override fun toString(): String {
-        var result = ""
-        result += "Latitude: $latitude, "
-        result += "Longitude: $longitude"
-        name?.let {
-            result += ", Name: $it"
+        return buildString {
+            append("Latitude: $latitude, ")
+            append("Longitude: $longitude")
+            name?.let { append(", Name: $it") }
         }
-        return result
     }
     
     
     override fun equals(other: Any?): Boolean {
         if (other !is Location) return false
         return latitude == other.latitude && longitude == other.longitude
+    }
+
+    override fun hashCode(): Int {
+        var result = latitude.hashCode()
+        result = 31 * result + longitude.hashCode()
+        return result
     }
 }
