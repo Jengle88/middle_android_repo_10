@@ -79,9 +79,8 @@ class LocationRepository(
             } catch (e: SecurityException) {
                 Log.e("LocationRepository", "Location permission not granted", e)
                 continuation.resumeWith(Result.success(null))
-            } finally {
-                continuation.invokeOnCancellation { fusedLocationClient.removeLocationUpdates(locationCallback) }
             }
+            continuation.invokeOnCancellation { fusedLocationClient.removeLocationUpdates(locationCallback) }
         }
     }
 

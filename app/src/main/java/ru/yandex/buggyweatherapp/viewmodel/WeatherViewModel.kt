@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ru.yandex.buggyweatherapp.model.Location
 import ru.yandex.buggyweatherapp.model.WeatherData
@@ -24,7 +24,7 @@ class WeatherViewModel(
     private val _state = MutableStateFlow(WeatherScreenUiState.default())
     val state = _state.asStateFlow()
 
-    private var currentLocation: Location? = null
+    private var currentLocation: MutableStateFlow<Location?> = MutableStateFlow(null)
     private var refreshJob: Job? = null
 
     fun initialize() {
@@ -45,7 +45,7 @@ class WeatherViewModel(
                     locationRepository.getCityNameFromLocation(location)
                 val weatherData = getWeatherForLocation(location).getOrNull()
                 if (weatherData != null) {
-                    currentLocation = location
+                    currentLocation.update { location }
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -57,7 +57,7 @@ class WeatherViewModel(
                     return@launch
                 }
             }
-            currentLocation = null
+            currentLocation.update { null }
             _state.update {
                 it.copy(
                     isLoading = false,
@@ -87,7 +87,7 @@ class WeatherViewModel(
             val weatherData = weatherRepository.getWeatherByCity(city).getOrNull()
             _state.update {
                 if (weatherData != null) {
-                    currentLocation = Location(0.0, 0.0, weatherData.cityName)
+                    currentLocation.update { Location(0.0, 0.0, weatherData.cityName) }
                     it.copy(
                         isLoading = false,
                         error = null,
@@ -107,15 +107,16 @@ class WeatherViewModel(
     private fun startAutoRefresh() {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch(Dispatchers.IO) {
-            ensureActive()
-            _state.update { it.copy(isLoading = true) }
-            val weatherData = currentLocation?.let { location ->
-                getWeatherForLocation(location)
-            }?.getOrNull()
-            if (weatherData != null)
-                _state.update { it.copy(isLoading = false, weatherData = weatherData, error = null) }
-            else _state.update { it.copy(isLoading = false) }
-            delay(60_000)
+            while (isActive) {
+                _state.update { it.copy(isLoading = true) }
+                val weatherData = currentLocation.value?.let { location ->
+                    getWeatherForLocation(location)
+                }?.getOrNull()
+                if (weatherData != null)
+                    _state.update { it.copy(isLoading = false, weatherData = weatherData, error = null) }
+                else _state.update { it.copy(isLoading = false) }
+                delay(AUTO_REFRESH_DELAY)
+            }
         }
     }
     
@@ -133,5 +134,9 @@ class WeatherViewModel(
         super.onCleared()
         refreshJob?.cancel()
         refreshJob = null
+    }
+
+    private companion object {
+        private const val AUTO_REFRESH_DELAY = 60_000L
     }
 }
