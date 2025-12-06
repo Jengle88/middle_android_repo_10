@@ -19,14 +19,14 @@ interface WeatherApiService {
     suspend fun getCurrentWeather(
         @Query("lat") latitude: Double,
         @Query("lon") longitude: Double,
-        @Query("appid") apiKey: String,
-        @Query("units") units: String
+        @Query("appid") apiKey: String = API_KEY,
+        @Query("units") units: String = "metric"
     ): Response<JsonObject>
     
     @GET("weather")
     suspend fun getWeatherByCity(
         @Query("q") cityName: String,
-        @Query("appid") apiKey: String,
-        @Query("units") units: String
+        @Query("appid") apiKey: String = API_KEY,
+        @Query("units") units: String = "metric"
     ): Response<JsonObject>
 }

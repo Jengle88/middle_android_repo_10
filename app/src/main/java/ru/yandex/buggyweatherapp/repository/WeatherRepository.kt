@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.annotation.WorkerThread
 import com.google.gson.JsonObject
 import ru.yandex.buggyweatherapp.api.WeatherApiService
-import ru.yandex.buggyweatherapp.api.WeatherApiService.Companion.API_KEY
 import ru.yandex.buggyweatherapp.model.Location
 import ru.yandex.buggyweatherapp.model.WeatherData
 
@@ -14,7 +13,7 @@ class WeatherRepository(
     @WorkerThread
     suspend fun getWeatherData(location: Location): Result<WeatherData> {
         return try {
-            val response = weatherApi.getCurrentWeather(location.latitude, location.longitude, API_KEY, "metric")
+            val response = weatherApi.getCurrentWeather(location.latitude, location.longitude)
             if (response.isSuccessful) {
                 val weatherData = parseWeatherData(response.body()!!)
                 Result.success(weatherData)
@@ -30,7 +29,7 @@ class WeatherRepository(
     @WorkerThread
     suspend fun getWeatherByCity(cityName: String): Result<WeatherData> {
         return try {
-            val response = weatherApi.getWeatherByCity(cityName, API_KEY, "metric")
+            val response = weatherApi.getWeatherByCity(cityName)
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
